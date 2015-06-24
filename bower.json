@@ -1,0 +1,22 @@
+{
+  "name": "cepto",
+  "version": "0.1.0",
+  "authors": [
+    "creeperyang <yangcreeper@hotmail.com>"
+  ],
+  "description": "a small mobile JavaScript library",
+  "keywords": [
+    "mobile",
+    "library",
+    "jQuery like"
+  ],
+  "license": "MIT",
+  "main": "dist/cepto.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
