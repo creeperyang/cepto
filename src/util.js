@@ -131,6 +131,10 @@ var isArraylike = function(obj) {
         typeof length === 'number' && length > 0 && (length - 1) in obj;
 };
 
+var inArray = function(elem, array, i){
+    return emptyArray.indexOf.call(array, elem, i);
+};
+
 // ret is for internal usage only
 var toArray = function(arr, ret) {
     ret = ret || [];
@@ -344,6 +348,7 @@ module.exports = {
     camelCase: camelCase,
     dasherize: dasherize,
     type: type,
+    inArray: inArray,
     isArray: isArray,
     isArraylike: isArraylike,
     isWindow: isWindow,

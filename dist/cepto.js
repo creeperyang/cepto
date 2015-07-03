@@ -157,7 +157,217 @@ cepto.fn.extend({
     }
 });
 
-},{"./core.js":5,"./util.js":15}],2:[function(require,module,exports){
+},{"./core.js":6,"./util.js":16}],2:[function(require,module,exports){
+'use strict';
+// ---
+// Callbacks module is from jQuery 2.1.3
+// ---
+
+var cepto = require('./core-core.js');
+var util = require('./util.js');
+
+// String to Object options format cache
+var optionsCache = {};
+var rnotwhite = /\S+/g;
+
+// Convert String-formatted options into Object-formatted ones and store in cache
+function createOptions( options ) {
+    var object = optionsCache[ options ] = {};
+    cepto.each( options.match( rnotwhite ) || [], function( _, flag ) {
+        object[ flag ] = true;
+    });
+    return object;
+}
+
+/*
+ * Create a callback list using the following parameters:
+ *
+ *  options: an optional list of space-separated options that will change how
+ *          the callback list behaves or a more traditional option object
+ *
+ * By default a callback list will act like an event callback list and can be
+ * "fired" multiple times.
+ *
+ * Possible options:
+ *
+ *  once:           will ensure the callback list can only be fired once (like a Deferred)
+ *
+ *  memory:         will keep track of previous values and will call any callback added
+ *                  after the list has been fired right away with the latest "memorized"
+ *                  values (like a Deferred)
+ *
+ *  unique:         will ensure a callback can only be added once (no duplicate in the list)
+ *
+ *  stopOnFalse:    interrupt callings when a callback returns false
+ *
+ */
+cepto.Callbacks = function(options) {
+
+    // Convert options from String-formatted to Object-formatted if needed
+    // (we check in cache first)
+    options = typeof options === "string" ?
+        (optionsCache[options] || createOptions(options)) :
+        cepto.extend({}, options);
+
+    var // Last fire value (for non-forgettable lists)
+        memory,
+        // Flag to know if list was already fired
+        fired,
+        // Flag to know if list is currently firing
+        firing,
+        // First callback to fire (used internally by add and fireWith)
+        firingStart,
+        // End of the loop when firing
+        firingLength,
+        // Index of currently firing callback (modified by remove if needed)
+        firingIndex,
+        // Actual callback list
+        list = [],
+        // Stack of fire calls for repeatable lists
+        stack = !options.once && [],
+        // Fire callbacks
+        fire = function(data) {
+            memory = options.memory && data;
+            fired = true;
+            firingIndex = firingStart || 0;
+            firingStart = 0;
+            firingLength = list.length;
+            firing = true;
+            for (; list && firingIndex < firingLength; firingIndex++) {
+                if (list[firingIndex].apply(data[0], data[1]) === false && options.stopOnFalse) {
+                    memory = false; // To prevent further calls using add
+                    break;
+                }
+            }
+            firing = false;
+            if (list) {
+                if (stack) {
+                    if (stack.length) {
+                        fire(stack.shift());
+                    }
+                } else if (memory) {
+                    list = [];
+                } else {
+                    self.disable();
+                }
+            }
+        },
+        // Actual Callbacks object
+        self = {
+            // Add a callback or a collection of callbacks to the list
+            add: function() {
+                if (list) {
+                    // First, we save the current length
+                    var start = list.length;
+                    (function add(args) {
+                        cepto.each(args, function(_, arg) {
+                            var type = cepto.type(arg);
+                            if (type === "function") {
+                                // two situations: 1. not unique; 2. unique but not duplicate
+                                if (!options.unique || !self.has(arg)) {
+                                    list.push(arg);
+                                }
+                            } else if (arg && arg.length && type !== "string") {
+                                // Array-like, Inspect recursively
+                                add(arg);
+                            }
+                        });
+                    })(arguments);
+                    // Do we need to add the callbacks to the
+                    // current firing batch?
+                    if (firing) {
+                        firingLength = list.length;
+                    // With memory, if we're not firing then
+                    // we should call right away
+                    } else if (memory) {
+                        firingStart = start;
+                        fire(memory);
+                    }
+                }
+                return this;
+            },
+            // Remove a callback from the list
+            remove: function() {
+                if (list) {
+                    cepto.each(arguments, function(_, arg) {
+                        var index;
+                        while ((index = cepto.inArray(arg, list, index)) > -1) {
+                            list.splice(index, 1);
+                            // Handle firing indexes
+                            if (firing) {
+                                if (index <= firingLength) {
+                                    firingLength--;
+                                }
+                                if (index <= firingIndex) {
+                                    firingIndex--;
+                                }
+                            }
+                        }
+                    });
+                }
+                return this;
+            },
+            // Check if a given callback is in the list.
+            // If no argument is given, return whether or not list has callbacks attached.
+            has: function(fn) {
+                return fn ? cepto.inArray(fn, list) > -1 : !!(list && list.length);
+            },
+            // Remove all callbacks from the list
+            empty: function() {
+                list = [];
+                firingLength = 0;
+                return this;
+            },
+            // Have the list do nothing anymore
+            disable: function() {
+                list = stack = memory = undefined;
+                return this;
+            },
+            // Is it disabled?
+            disabled: function() {
+                return !list;
+            },
+            // Lock the list in its current state
+            lock: function() {
+                stack = undefined;
+                if (!memory) {
+                    self.disable();
+                }
+                return this;
+            },
+            // Is it locked?
+            locked: function() {
+                return !stack;
+            },
+            // Call all callbacks with the given context and arguments
+            fireWith: function(context, args) {
+                if (list && (!fired || stack)) {
+                    args = args || [];
+                    args = [context, args.slice ? args.slice() : args];
+                    if (firing) {
+                        stack.push(args);
+                    } else {
+                        fire(args);
+                    }
+                }
+                return this;
+            },
+            // Call all the callbacks with the given arguments
+            fire: function() {
+                self.fireWith(this, arguments);
+                return this;
+            },
+            // To know if the callbacks have already been called at least once
+            fired: function() {
+                return !!fired;
+            }
+        };
+
+    return self;
+
+};
+
+},{"./core-core.js":4,"./util.js":16}],3:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core.js');
@@ -165,6 +375,8 @@ require('./selector.js');
 require('./core-init.js');
 // data
 require('./data.js');
+// callbacks
+require('./callbacks.js');
 // attribute
 require('./attribute.js');
 // add dom manipulation: append prepend after before ...
@@ -179,7 +391,7 @@ require('./dimensions.js');
 require('./event.js');
 
 window.cepto = window.$ = cepto;
-},{"./attribute.js":1,"./core-init.js":4,"./core.js":5,"./css.js":6,"./data.js":8,"./dimensions.js":9,"./dom-manipulation.js":11,"./dom.js":12,"./event.js":13,"./selector.js":14}],3:[function(require,module,exports){
+},{"./attribute.js":1,"./callbacks.js":2,"./core-init.js":5,"./core.js":6,"./css.js":7,"./data.js":9,"./dimensions.js":10,"./dom-manipulation.js":12,"./dom.js":13,"./event.js":14,"./selector.js":15}],4:[function(require,module,exports){
 'use strict';
 
 var cepto = function(selector, context) {
@@ -187,7 +399,7 @@ var cepto = function(selector, context) {
 };
 
 module.exports = cepto;
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 
 var util = require('./util.js');
@@ -274,7 +486,7 @@ init.prototype = cepto.prototype;
 cepto.prototype.init = init;
 
 module.exports = init;
-},{"./core-core.js":3,"./util.js":15}],5:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16}],6:[function(require,module,exports){
 'use strict';
 
 var util = require('./util.js');
@@ -356,6 +568,7 @@ cepto.extend({
     merge: util.merge,
     camelCase: util.camelCase,
     type: util.type,
+    inArray: util.inArray,
     isArray: util.isArray,
     isArraylike: util.isArraylike,
     isWindow: util.isWindow,
@@ -371,7 +584,7 @@ cepto.extend({
 
 module.exports = cepto;
 
-},{"./core-core.js":3,"./dom-fragment.js":10,"./util.js":15}],6:[function(require,module,exports){
+},{"./core-core.js":4,"./dom-fragment.js":11,"./util.js":16}],7:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core-core.js');
@@ -471,7 +684,7 @@ cepto.fn.extend({
     }
 });
 
-},{"./core-core.js":3,"./util.js":15}],7:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16}],8:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core-core.js');
@@ -633,7 +846,7 @@ Data.prototype = {
 
 module.exports = Data;
 
-},{"./core-core.js":3,"./util.js":15}],8:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16}],9:[function(require,module,exports){
 'use strict';
 
 
@@ -795,7 +1008,7 @@ cepto.extend({
     }
 
 });
-},{"./core-core.js":3,"./data-core.js":7,"./util.js":15,"./vars/data.js":16}],9:[function(require,module,exports){
+},{"./core-core.js":4,"./data-core.js":8,"./util.js":16,"./vars/data.js":17}],10:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core-core.js');
@@ -901,7 +1114,7 @@ cepto.fn.extend({
     };
 });
 
-},{"./core-core.js":3,"./util.js":15}],10:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16}],11:[function(require,module,exports){
 'use strict';
 
 var util = require('./util.js');
@@ -984,7 +1197,7 @@ var buildFragment = function(html, name, properties) {
 module.exports = {
     buildFragment: buildFragment
 };
-},{"./util.js":15}],11:[function(require,module,exports){
+},{"./util.js":16}],12:[function(require,module,exports){
 'use strict';
 
 var util = require('./util.js');
@@ -1068,7 +1281,7 @@ adjacencyOperators.forEach(function(operator, operatorIndex) {
     };
 });
 
-},{"./core.js":5,"./dom-fragment.js":10,"./util.js":15}],12:[function(require,module,exports){
+},{"./core.js":6,"./dom-fragment.js":11,"./util.js":16}],13:[function(require,module,exports){
 'use strict';
 
 
@@ -1133,7 +1346,7 @@ cepto.fn.extend({
     }
 });
 
-},{"./core-core.js":3,"./util.js":15}],13:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16}],14:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core-core.js');
@@ -1474,7 +1687,7 @@ cepto.Event = function(type, props) {
     return compatible(event);
 };
 
-},{"./core-core.js":3,"./util.js":15,"./vars/data.js":16}],14:[function(require,module,exports){
+},{"./core-core.js":4,"./util.js":16,"./vars/data.js":17}],15:[function(require,module,exports){
 'use strict';
 
 
@@ -1692,7 +1905,7 @@ module.exports = {
     contains: contains
 };
 
-},{"./core.js":5,"./util.js":15}],15:[function(require,module,exports){
+},{"./core.js":6,"./util.js":16}],16:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core-core.js');
@@ -1824,6 +2037,10 @@ var isArraylike = function(obj) {
 
     return typeName === 'array' || length === 0 ||
         typeof length === 'number' && length > 0 && (length - 1) in obj;
+};
+
+var inArray = function(elem, array, i){
+    return emptyArray.indexOf.call(array, elem, i);
 };
 
 // ret is for internal usage only
@@ -2039,6 +2256,7 @@ module.exports = {
     camelCase: camelCase,
     dasherize: dasherize,
     type: type,
+    inArray: inArray,
     isArray: isArray,
     isArraylike: isArraylike,
     isWindow: isWindow,
@@ -2056,7 +2274,7 @@ module.exports = {
     walkDom: walkDom
 };
 
-},{"./core-core.js":3}],16:[function(require,module,exports){
+},{"./core-core.js":4}],17:[function(require,module,exports){
 'use strict';
 
 var Data = require('../data-core.js');
@@ -2065,4 +2283,4 @@ module.exports = {
     privData: new Data(), // innser usage
     userData: new Data()
 };
-},{"../data-core.js":7}]},{},[2]);
+},{"../data-core.js":8}]},{},[3]);

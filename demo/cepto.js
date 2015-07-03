@@ -156,15 +156,151 @@
             }
         });
     }, {
-        "./core.js": 5,
-        "./util.js": 15
+        "./core.js": 6,
+        "./util.js": 16
     } ],
     2: [ function(require, module, exports) {
+        "use strict";
+        var cepto = require("./core-core.js");
+        var util = require("./util.js");
+        var optionsCache = {};
+        var rnotwhite = /\S+/g;
+        function createOptions(options) {
+            var object = optionsCache[options] = {};
+            cepto.each(options.match(rnotwhite) || [], function(_, flag) {
+                object[flag] = true;
+            });
+            return object;
+        }
+        cepto.Callbacks = function(options) {
+            options = typeof options === "string" ? optionsCache[options] || createOptions(options) : cepto.extend({}, options);
+            var memory, fired, firing, firingStart, firingLength, firingIndex, list = [], stack = !options.once && [], fire = function(data) {
+                memory = options.memory && data;
+                fired = true;
+                firingIndex = firingStart || 0;
+                firingStart = 0;
+                firingLength = list.length;
+                firing = true;
+                for (;list && firingIndex < firingLength; firingIndex++) {
+                    if (list[firingIndex].apply(data[0], data[1]) === false && options.stopOnFalse) {
+                        memory = false;
+                        break;
+                    }
+                }
+                firing = false;
+                if (list) {
+                    if (stack) {
+                        if (stack.length) {
+                            fire(stack.shift());
+                        }
+                    } else if (memory) {
+                        list = [];
+                    } else {
+                        self.disable();
+                    }
+                }
+            }, self = {
+                add: function() {
+                    if (list) {
+                        var start = list.length;
+                        (function add(args) {
+                            cepto.each(args, function(_, arg) {
+                                var type = cepto.type(arg);
+                                if (type === "function") {
+                                    if (!options.unique || !self.has(arg)) {
+                                        list.push(arg);
+                                    }
+                                } else if (arg && arg.length && type !== "string") {
+                                    add(arg);
+                                }
+                            });
+                        })(arguments);
+                        if (firing) {
+                            firingLength = list.length;
+                        } else if (memory) {
+                            firingStart = start;
+                            fire(memory);
+                        }
+                    }
+                    return this;
+                },
+                remove: function() {
+                    if (list) {
+                        cepto.each(arguments, function(_, arg) {
+                            var index;
+                            while ((index = cepto.inArray(arg, list, index)) > -1) {
+                                list.splice(index, 1);
+                                if (firing) {
+                                    if (index <= firingLength) {
+                                        firingLength--;
+                                    }
+                                    if (index <= firingIndex) {
+                                        firingIndex--;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    return this;
+                },
+                has: function(fn) {
+                    return fn ? cepto.inArray(fn, list) > -1 : !!(list && list.length);
+                },
+                empty: function() {
+                    list = [];
+                    firingLength = 0;
+                    return this;
+                },
+                disable: function() {
+                    list = stack = memory = undefined;
+                    return this;
+                },
+                disabled: function() {
+                    return !list;
+                },
+                lock: function() {
+                    stack = undefined;
+                    if (!memory) {
+                        self.disable();
+                    }
+                    return this;
+                },
+                locked: function() {
+                    return !stack;
+                },
+                fireWith: function(context, args) {
+                    if (list && (!fired || stack)) {
+                        args = args || [];
+                        args = [ context, args.slice ? args.slice() : args ];
+                        if (firing) {
+                            stack.push(args);
+                        } else {
+                            fire(args);
+                        }
+                    }
+                    return this;
+                },
+                fire: function() {
+                    self.fireWith(this, arguments);
+                    return this;
+                },
+                fired: function() {
+                    return !!fired;
+                }
+            };
+            return self;
+        };
+    }, {
+        "./core-core.js": 4,
+        "./util.js": 16
+    } ],
+    3: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core.js");
         require("./selector.js");
         require("./core-init.js");
         require("./data.js");
+        require("./callbacks.js");
         require("./attribute.js");
         require("./dom-manipulation.js");
         require("./dom.js");
@@ -174,24 +310,25 @@
         window.cepto = window.$ = cepto;
     }, {
         "./attribute.js": 1,
-        "./core-init.js": 4,
-        "./core.js": 5,
-        "./css.js": 6,
-        "./data.js": 8,
-        "./dimensions.js": 9,
-        "./dom-manipulation.js": 11,
-        "./dom.js": 12,
-        "./event.js": 13,
-        "./selector.js": 14
+        "./callbacks.js": 2,
+        "./core-init.js": 5,
+        "./core.js": 6,
+        "./css.js": 7,
+        "./data.js": 9,
+        "./dimensions.js": 10,
+        "./dom-manipulation.js": 12,
+        "./dom.js": 13,
+        "./event.js": 14,
+        "./selector.js": 15
     } ],
-    3: [ function(require, module, exports) {
+    4: [ function(require, module, exports) {
         "use strict";
         var cepto = function(selector, context) {
             return new cepto.fn.init(selector, context);
         };
         module.exports = cepto;
     }, {} ],
-    4: [ function(require, module, exports) {
+    5: [ function(require, module, exports) {
         "use strict";
         var util = require("./util.js");
         var cepto = require("./core-core.js");
@@ -248,10 +385,10 @@
         cepto.prototype.init = init;
         module.exports = init;
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./util.js": 16
     } ],
-    5: [ function(require, module, exports) {
+    6: [ function(require, module, exports) {
         "use strict";
         var util = require("./util.js");
         var cepto = require("./core-core.js");
@@ -319,6 +456,7 @@
             merge: util.merge,
             camelCase: util.camelCase,
             type: util.type,
+            inArray: util.inArray,
             isArray: util.isArray,
             isArraylike: util.isArraylike,
             isWindow: util.isWindow,
@@ -333,11 +471,11 @@
         });
         module.exports = cepto;
     }, {
-        "./core-core.js": 3,
-        "./dom-fragment.js": 10,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./dom-fragment.js": 11,
+        "./util.js": 16
     } ],
-    6: [ function(require, module, exports) {
+    7: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var util = require("./util.js");
@@ -429,10 +567,10 @@
             }
         });
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./util.js": 16
     } ],
-    7: [ function(require, module, exports) {
+    8: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var util = require("./util.js");
@@ -530,10 +668,10 @@
         };
         module.exports = Data;
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./util.js": 16
     } ],
-    8: [ function(require, module, exports) {
+    9: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var util = require("./util.js");
@@ -650,12 +788,12 @@
             }
         });
     }, {
-        "./core-core.js": 3,
-        "./data-core.js": 7,
-        "./util.js": 15,
-        "./vars/data.js": 16
+        "./core-core.js": 4,
+        "./data-core.js": 8,
+        "./util.js": 16,
+        "./vars/data.js": 17
     } ],
-    9: [ function(require, module, exports) {
+    10: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var util = require("./util.js");
@@ -732,10 +870,10 @@
             };
         });
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./util.js": 16
     } ],
-    10: [ function(require, module, exports) {
+    11: [ function(require, module, exports) {
         "use strict";
         var util = require("./util.js");
         var singleTagRE = /^<(\w+)\s*\/?>(?:<\/\1>|)$/;
@@ -792,9 +930,9 @@
             buildFragment: buildFragment
         };
     }, {
-        "./util.js": 15
+        "./util.js": 16
     } ],
-    11: [ function(require, module, exports) {
+    12: [ function(require, module, exports) {
         "use strict";
         var util = require("./util.js");
         var cepto = require("./core.js");
@@ -846,11 +984,11 @@
             };
         });
     }, {
-        "./core.js": 5,
-        "./dom-fragment.js": 10,
-        "./util.js": 15
+        "./core.js": 6,
+        "./dom-fragment.js": 11,
+        "./util.js": 16
     } ],
-    12: [ function(require, module, exports) {
+    13: [ function(require, module, exports) {
         "use strict";
         var funcArg = require("./util.js").funcArg;
         var cepto = require("./core-core.js");
@@ -900,10 +1038,10 @@
             }
         });
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15
+        "./core-core.js": 4,
+        "./util.js": 16
     } ],
-    13: [ function(require, module, exports) {
+    14: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var util = require("./util.js");
@@ -1182,11 +1320,11 @@
             return compatible(event);
         };
     }, {
-        "./core-core.js": 3,
-        "./util.js": 15,
-        "./vars/data.js": 16
+        "./core-core.js": 4,
+        "./util.js": 16,
+        "./vars/data.js": 17
     } ],
-    14: [ function(require, module, exports) {
+    15: [ function(require, module, exports) {
         "use strict";
         var util = require("./util.js");
         var cepto = require("./core.js");
@@ -1362,10 +1500,10 @@
             contains: contains
         };
     }, {
-        "./core.js": 5,
-        "./util.js": 15
+        "./core.js": 6,
+        "./util.js": 16
     } ],
-    15: [ function(require, module, exports) {
+    16: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
         var emptyArray = [];
@@ -1447,6 +1585,9 @@
                 return true;
             }
             return typeName === "array" || length === 0 || typeof length === "number" && length > 0 && length - 1 in obj;
+        };
+        var inArray = function(elem, array, i) {
+            return emptyArray.indexOf.call(array, elem, i);
         };
         var toArray = function(arr, ret) {
             ret = ret || [];
@@ -1612,6 +1753,7 @@
             camelCase: camelCase,
             dasherize: dasherize,
             type: type,
+            inArray: inArray,
             isArray: isArray,
             isArraylike: isArraylike,
             isWindow: isWindow,
@@ -1629,9 +1771,9 @@
             walkDom: walkDom
         };
     }, {
-        "./core-core.js": 3
+        "./core-core.js": 4
     } ],
-    16: [ function(require, module, exports) {
+    17: [ function(require, module, exports) {
         "use strict";
         var Data = require("../data-core.js");
         module.exports = {
@@ -1639,6 +1781,6 @@
             userData: new Data()
         };
     }, {
-        "../data-core.js": 7
+        "../data-core.js": 8
     } ]
-}, {}, [ 2 ]);
+}, {}, [ 3 ]);

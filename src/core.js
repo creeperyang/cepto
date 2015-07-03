@@ -79,6 +79,7 @@ cepto.extend({
     merge: util.merge,
     camelCase: util.camelCase,
     type: util.type,
+    inArray: util.inArray,
     isArray: util.isArray,
     isArraylike: util.isArraylike,
     isWindow: util.isWindow,

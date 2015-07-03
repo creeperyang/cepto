@@ -5,6 +5,8 @@ require('./selector.js');
 require('./core-init.js');
 // data
 require('./data.js');
+// callbacks
+require('./callbacks.js');
 // attribute
 require('./attribute.js');
 // add dom manipulation: append prepend after before ...
