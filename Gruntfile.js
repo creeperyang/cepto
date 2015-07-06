@@ -44,8 +44,7 @@ module.exports = function(grunt) {
             all: {
                 src: [
                     'Gruntfile.js',
-                    //'<%= config.app %>/{,*/}*.js'
-                    '<%= config.app %>/event.js'
+                    '<%= config.app %>/{,*/}*.js'
                 ]
             }
         },

@@ -7,6 +7,8 @@ require('./core-init.js');
 require('./data.js');
 // callbacks
 require('./callbacks.js');
+// deferred
+require('./deferred.js');
 // attribute
 require('./attribute.js');
 // add dom manipulation: append prepend after before ...
@@ -19,5 +21,7 @@ require('./css.js');
 require('./dimensions.js');
 // event
 require('./event.js');
+// ajax
+require('./ajax.js');
 
 window.cepto = window.$ = cepto;

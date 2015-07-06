@@ -1,0 +1,6 @@
+{
+    "name": "Mike",
+    "age": 24,
+    "gender": "male",
+    "friends": ["Lucy", "Jack"]
+}
