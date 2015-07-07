@@ -4,7 +4,6 @@
 // ---
 
 var cepto = require('./core-core.js');
-var util = require('./util.js');
 
 // String to Object options format cache
 var optionsCache = {};
@@ -45,7 +44,7 @@ cepto.Callbacks = function(options) {
 
     // Convert options from String-formatted to Object-formatted if needed
     // (we check in cache first)
-    options = typeof options === "string" ?
+    options = typeof options === 'string' ?
         (optionsCache[options] || createOptions(options)) :
         cepto.extend({}, options);
 
@@ -102,12 +101,12 @@ cepto.Callbacks = function(options) {
                     (function add(args) {
                         cepto.each(args, function(_, arg) {
                             var type = cepto.type(arg);
-                            if (type === "function") {
+                            if (type === 'function') {
                                 // two situations: 1. not unique; 2. unique but not duplicate
                                 if (!options.unique || !self.has(arg)) {
                                     list.push(arg);
                                 }
-                            } else if (arg && arg.length && type !== "string") {
+                            } else if (arg && arg.length && type !== 'string') {
                                 // Array-like, Inspect recursively
                                 add(arg);
                             }

@@ -55,6 +55,12 @@
             }
             triggerGlobal(settings, context, "ajaxSend", [ xhr, settings ]);
         }
+        function ajaxComplete(status, xhr, settings) {
+            var context = settings.context;
+            settings.complete.call(context, xhr, status);
+            triggerGlobal(settings, context, "ajaxComplete", [ xhr, settings ]);
+            ajaxStop(settings);
+        }
         function ajaxSuccess(data, xhr, settings, deferred) {
             var context = settings.context, status = "success";
             settings.success.call(context, data, status, xhr);
@@ -72,12 +78,6 @@
             }
             triggerGlobal(settings, context, "ajaxError", [ xhr, settings, error || type ]);
             ajaxComplete(type, xhr, settings);
-        }
-        function ajaxComplete(status, xhr, settings) {
-            var context = settings.context;
-            settings.complete.call(context, xhr, status);
-            triggerGlobal(settings, context, "ajaxComplete", [ xhr, settings ]);
-            ajaxStop(settings);
         }
         $.ajaxJSONP = function(options, deferred) {
             if (!("type" in options)) {
@@ -209,7 +209,7 @@
                 setHeader("X-Requested-With", "XMLHttpRequest");
             }
             setHeader("Accept", mime || "*/*");
-            if (mime = settings.mimeType || mime) {
+            if ((mime = settings.mimeType) || mime) {
                 if (mime.indexOf(",") > -1) {
                     mime = mime.split(",", 2)[0];
                 }
@@ -225,11 +225,11 @@
             }
             xhr.setRequestHeader = setHeader;
             xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4) {
+                if (xhr.readyState === 4) {
                     xhr.onreadystatechange = empty;
                     clearTimeout(abortTimeout);
                     var result, error = false;
-                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304 || xhr.status == 0 && protocol == "file:") {
+                    if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304 || xhr.status === 0 && protocol === "file:") {
                         dataType = dataType || mimeToDataType(settings.mimeType || xhr.getResponseHeader("content-type"));
                         result = xhr.responseText;
                         try {
@@ -326,9 +326,15 @@
             $.each(obj, function(key, value) {
                 type = $.type(value);
                 if (scope) {
-                    key = traditional ? scope : scope + "[" + (hash || type == "object" || type == "array" ? key : "") + "]";
+                    key = traditional ? scope : scope + "[" + (hash || type === "object" || type === "array" ? key : "") + "]";
                 }
-                if (!scope && array) params.add(value.name, value.value); else if (type == "array" || !traditional && type == "object") serialize(params, value, traditional, key); else params.add(key, value);
+                if (!scope && array) {
+                    params.add(value.name, value.value);
+                } else if (type === "array" || !traditional && type === "object") {
+                    serialize(params, value, traditional, key);
+                } else {
+                    params.add(key, value);
+                }
             });
         }
         $.param = function(obj, traditional) {
@@ -488,7 +494,6 @@
     3: [ function(require, module, exports) {
         "use strict";
         var cepto = require("./core-core.js");
-        var util = require("./util.js");
         var optionsCache = {};
         var rnotwhite = /\S+/g;
         function createOptions(options) {
@@ -617,8 +622,7 @@
             return self;
         };
     }, {
-        "./core-core.js": 5,
-        "./util.js": 18
+        "./core-core.js": 5
     } ],
     4: [ function(require, module, exports) {
         "use strict";

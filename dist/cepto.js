@@ -6,7 +6,7 @@ var $ = require('./core-core.js');
 //     Zepto.js
 //     (c) 2010-2015 Thomas Fuchs
 //     Zepto.js may be freely distributed under the MIT license.
-
+/* jshint -W079 */
 var jsonpID = 0,
     docElement = window.document,
     key,
@@ -19,7 +19,7 @@ var jsonpID = 0,
     blankRE = /^\s*$/,
     originAnchor = docElement.createElement('a'),
     empty = $.noop; // Empty function, used as default callback
-
+/* jshint +W079 */
 originAnchor.href = window.location.href;
 
 // trigger a custom event and return false if it was cancelled
@@ -62,6 +62,14 @@ function ajaxBeforeSend(xhr, settings) {
     triggerGlobal(settings, context, 'ajaxSend', [xhr, settings]);
 }
 
+// status: "success", "notmodified", "error", "timeout", "abort", "parsererror"
+function ajaxComplete(status, xhr, settings) {
+    var context = settings.context;
+    settings.complete.call(context, xhr, status);
+    triggerGlobal(settings, context, 'ajaxComplete', [xhr, settings]);
+    ajaxStop(settings);
+}
+
 function ajaxSuccess(data, xhr, settings, deferred) {
     var context = settings.context,
         status = 'success';
@@ -82,14 +90,6 @@ function ajaxError(error, type, xhr, settings, deferred) {
     }
     triggerGlobal(settings, context, 'ajaxError', [xhr, settings, error || type]);
     ajaxComplete(type, xhr, settings);
-}
-
-// status: "success", "notmodified", "error", "timeout", "abort", "parsererror"
-function ajaxComplete(status, xhr, settings) {
-    var context = settings.context;
-    settings.complete.call(context, xhr, status);
-    triggerGlobal(settings, context, 'ajaxComplete', [xhr, settings]);
-    ajaxStop(settings);
 }
 
 $.ajaxJSONP = function(options, deferred) {
@@ -215,7 +215,7 @@ function appendQuery(url, query) {
 
 // serialize payload and append it to the URL for GET requests
 function serializeData(options) {
-    if (options.processData && options.data && $.type(options.data) !== "string") {
+    if (options.processData && options.data && $.type(options.data) !== 'string') {
         options.data = $.param(options.data, options.traditional);
     }
     if (options.data && (!options.type || options.type.toUpperCase() === 'GET')) {
@@ -292,7 +292,7 @@ $.ajax = function(options) {
         setHeader('X-Requested-With', 'XMLHttpRequest');
     }
     setHeader('Accept', mime || '*/*');
-    if (mime = settings.mimeType || mime) {
+    if ((mime = settings.mimeType) || mime) {
         if (mime.indexOf(',') > -1) {
             mime = mime.split(',', 2)[0];
         }
@@ -311,18 +311,20 @@ $.ajax = function(options) {
     xhr.setRequestHeader = setHeader;
 
     xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
+        if (xhr.readyState === 4) {
             xhr.onreadystatechange = empty;
             clearTimeout(abortTimeout);
             var result, error = false;
-            if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304 || (xhr.status == 0 && protocol == 'file:')) {
+            if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304 || (xhr.status === 0 && protocol === 'file:')) {
                 dataType = dataType || mimeToDataType(settings.mimeType || xhr.getResponseHeader('content-type'));
                 result = xhr.responseText;
 
                 try {
                     // http://perfectionkills.com/global-eval-what-are-the-options/
                     if (dataType === 'script') {
+                        /* jshint ignore:start */
                         (1, eval)(result); // ensure eval at global scope
+                        /* jshint ignore:end */
                     } else if (dataType === 'xml') {
                         result = xhr.responseXML;
                     } else if (dataType === 'json') {
@@ -374,7 +376,7 @@ $.ajax = function(options) {
     // avoid sending empty string (#319)
     xhr.send(settings.data ? settings.data : null);
     return xhr;
-}
+};
 
 // handle optional data/success arguments
 function parseArguments(url, data, success, dataType) {
@@ -422,7 +424,7 @@ $.fn.load = function(url, data, success) {
     }
     options.success = function(response) {
         self.html(selector ?
-            $('<div>').html(response.replace(rscript, "")).find(selector) : response);
+            $('<div>').html(response.replace(rscript, '')).find(selector) : response);
         callback && callback.apply(self, arguments);
     };
     $.ajax(options);
@@ -438,14 +440,18 @@ function serialize(params, obj, traditional, scope) {
         type = $.type(value);
         if (scope) {
             key = traditional ? scope : scope + '[' + 
-                (hash || type == 'object' || type == 'array' ? key : '') + ']';
+                (hash || type === 'object' || type === 'array' ? key : '') + ']';
         }
         // handle data in serializeArray() format
-        if (!scope && array) params.add(value.name, value.value)
+        if (!scope && array) {
+            params.add(value.name, value.value);
+
         // recurse into nested objects
-        else if (type == "array" || (!traditional && type == "object"))
-            serialize(params, value, traditional, key)
-        else params.add(key, value)
+        } else if (type === 'array' || (!traditional && type === 'object')) {
+            serialize(params, value, traditional, key);
+        } else {
+            params.add(key, value);
+        }
     });
 }
 
@@ -456,7 +462,7 @@ $.param = function(obj, traditional) {
             value = value();
         }
         if (value == null) {
-            value = "";
+            value = '';
         }
         this.push(escape(key) + '=' + escape(value));
     };
@@ -630,7 +636,6 @@ cepto.fn.extend({
 // ---
 
 var cepto = require('./core-core.js');
-var util = require('./util.js');
 
 // String to Object options format cache
 var optionsCache = {};
@@ -671,7 +676,7 @@ cepto.Callbacks = function(options) {
 
     // Convert options from String-formatted to Object-formatted if needed
     // (we check in cache first)
-    options = typeof options === "string" ?
+    options = typeof options === 'string' ?
         (optionsCache[options] || createOptions(options)) :
         cepto.extend({}, options);
 
@@ -728,12 +733,12 @@ cepto.Callbacks = function(options) {
                     (function add(args) {
                         cepto.each(args, function(_, arg) {
                             var type = cepto.type(arg);
-                            if (type === "function") {
+                            if (type === 'function') {
                                 // two situations: 1. not unique; 2. unique but not duplicate
                                 if (!options.unique || !self.has(arg)) {
                                     list.push(arg);
                                 }
-                            } else if (arg && arg.length && type !== "string") {
+                            } else if (arg && arg.length && type !== 'string') {
                                 // Array-like, Inspect recursively
                                 add(arg);
                             }
@@ -833,7 +838,7 @@ cepto.Callbacks = function(options) {
 
 };
 
-},{"./core-core.js":5,"./util.js":18}],4:[function(require,module,exports){
+},{"./core-core.js":5}],4:[function(require,module,exports){
 'use strict';
 
 var cepto = require('./core.js');
@@ -1490,24 +1495,24 @@ var cepto = require('./core-core.js');
 //
 //     Some code (c) 2005, 2013 jQuery Foundation, Inc. and other contributors
 
-var slice = Array.prototype.slice
-
+var slice = Array.prototype.slice;
+/* jshint -W064 */
 function Deferred(func) {
     var tuples = [
             // action, add listener, listener list, final state
-            ["resolve", "done", cepto.Callbacks({
+            ['resolve', 'done', cepto.Callbacks({
                 once: 1,
                 memory: 1
-            }), "resolved"],
-            ["reject", "fail", cepto.Callbacks({
+            }), 'resolved'],
+            ['reject', 'fail', cepto.Callbacks({
                 once: 1,
                 memory: 1
-            }), "rejected"],
-            ["notify", "progress", cepto.Callbacks({
+            }), 'rejected'],
+            ['notify', 'progress', cepto.Callbacks({
                 memory: 1
             })]
         ],
-        state = "pending",
+        state = 'pending',
         promise = {
             state: function() {
                 return state;
@@ -1531,7 +1536,7 @@ function Deferred(func) {
                             } else {
                                 var context = this === promise ? defer.promise() : this,
                                     values = fn ? [returned] : arguments;
-                                defer[tuple[0] + "With"](context, values);
+                                defer[tuple[0] + 'With'](context, values);
                             }
                         });
                     });
@@ -1559,10 +1564,10 @@ function Deferred(func) {
         }
 
         deferred[tuple[0]] = function() {
-            deferred[tuple[0] + "With"](this === deferred ? promise : this, arguments);
+            deferred[tuple[0] + 'With'](this === deferred ? promise : this, arguments);
             return this;
         };
-        deferred[tuple[0] + "With"] = list.fireWith;
+        deferred[tuple[0] + 'With'] = list.fireWith;
     });
 
     // extend promise to deferred

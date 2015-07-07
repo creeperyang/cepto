@@ -9,24 +9,24 @@ var cepto = require('./core-core.js');
 //
 //     Some code (c) 2005, 2013 jQuery Foundation, Inc. and other contributors
 
-var slice = Array.prototype.slice
-
+var slice = Array.prototype.slice;
+/* jshint -W064 */
 function Deferred(func) {
     var tuples = [
             // action, add listener, listener list, final state
-            ["resolve", "done", cepto.Callbacks({
+            ['resolve', 'done', cepto.Callbacks({
                 once: 1,
                 memory: 1
-            }), "resolved"],
-            ["reject", "fail", cepto.Callbacks({
+            }), 'resolved'],
+            ['reject', 'fail', cepto.Callbacks({
                 once: 1,
                 memory: 1
-            }), "rejected"],
-            ["notify", "progress", cepto.Callbacks({
+            }), 'rejected'],
+            ['notify', 'progress', cepto.Callbacks({
                 memory: 1
             })]
         ],
-        state = "pending",
+        state = 'pending',
         promise = {
             state: function() {
                 return state;
@@ -50,7 +50,7 @@ function Deferred(func) {
                             } else {
                                 var context = this === promise ? defer.promise() : this,
                                     values = fn ? [returned] : arguments;
-                                defer[tuple[0] + "With"](context, values);
+                                defer[tuple[0] + 'With'](context, values);
                             }
                         });
                     });
@@ -78,10 +78,10 @@ function Deferred(func) {
         }
 
         deferred[tuple[0]] = function() {
-            deferred[tuple[0] + "With"](this === deferred ? promise : this, arguments);
+            deferred[tuple[0] + 'With'](this === deferred ? promise : this, arguments);
             return this;
         };
-        deferred[tuple[0] + "With"] = list.fireWith;
+        deferred[tuple[0] + 'With'] = list.fireWith;
     });
 
     // extend promise to deferred
